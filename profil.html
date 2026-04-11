@@ -458,7 +458,9 @@
                     throw new Error('Aucune donnée trouvée dans la base');
                 }
 
-                // Collecter toutes les données nécessaires depuis l'utilisateur propriétaire
+                const usersData = usersSnapshot.val();
+                let memberData = null;
+                let allPayments = [];
                 let lateConfig = null;
                 let dahiraParams = null;
                 
@@ -540,7 +542,7 @@
         }
 
         // Charger les paiements du membre
-        async function loadMemberPayments(memberId, allPayments = null) {
+        async function loadMemberPayments(memberId, memberSexe, allPayments = null, lateConfig = null, dahiraParams = null) {
             try {
                 let payments = allPayments;
 
