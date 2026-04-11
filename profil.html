@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil Membre - Dahira Kenal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -296,7 +297,7 @@
                     </div>
                     <div class="profile-actions">
                         <a id="call-button" class="btn btn-primary" style="display: none;">
-                            📞 Appeler
+                            <i class="fas fa-phone"></i> Appeler
                         </a>
                     </div>
                 </div>
@@ -306,7 +307,7 @@
             <div class="profile-card">
                 <div class="payments-section">
                     <h2 class="section-title">
-                        💰 Historique des ADIYA
+                        <i class="fas fa-coins"></i> Historique des ADIYA
                     </h2>
                     <div id="payments-container">
                         <!-- Payments will be inserted here -->
@@ -317,7 +318,7 @@
 
         <div id="error-content" style="display: none;">
             <div class="error">
-                <h2>❌ Erreur</h2>
+                <h2><i class="fas fa-circle-xmark"></i> Erreur</h2>
                 <p id="error-message">Impossible de charger le profil du membre.</p>
             </div>
         </div>
@@ -384,72 +385,62 @@
             document.getElementById('error-message').textContent = message;
         }
 
-        // Calculer le statut de paiement du membre
-        async function getPaymentStatus(memberId, allPayments = null) {
+        // Fonction type 'getAmount' pour récupérer les montants configurés
+        function getAmount(type, sexe, params) {
+            if (!params || !params.amounts || !params.amounts[type]) return 0;
+            const rates = params.amounts[type];
+            if (sexe === 'F' && rates.F !== undefined) return rates.F;
+            if (sexe === 'M' && rates.M !== undefined) return rates.M;
+            return rates.all !== undefined ? rates.all : 0;
+        }
+
+        // Calculer le statut de paiement du membre selon la configuration
+        async function getPaymentStatus(memberId, memberSexe, allPayments, lateConfig, params) {
             try {
-                let payments = allPayments;
-
-                // Si on n'a pas les paiements, les charger depuis tous les utilisateurs
-                if (!payments) {
-                    const usersRef = ref(database, 'users');
-                    const usersSnapshot = await get(usersRef);
-
-                    if (usersSnapshot.exists()) {
-                        const usersData = usersSnapshot.val();
-                        payments = [];
-
-                        // Collecter tous les paiements de tous les utilisateurs
-                        for (const userId in usersData) {
-                            const userData = usersData[userId];
-                            if (userData.payments) {
-                                if (Array.isArray(userData.payments)) {
-                                    // Si c'est un tableau direct
-                                    payments = payments.concat(userData.payments);
-                                } else {
-                                    // Si c'est un objet avec des clés (structure ancienne)
-                                    Object.values(userData.payments).forEach(paymentArray => {
-                                        if (Array.isArray(paymentArray)) {
-                                            payments = payments.concat(paymentArray);
-                                        }
-                                    });
-                                }
-                            }
-                        }
-                    } else {
-                        payments = [];
-                    }
-                }
-
                 const now = new Date();
                 const currentMonth = now.getMonth();
                 const currentYear = now.getFullYear();
 
-                const memberPayments = payments.filter(p => p && p.memberId === memberId);
-
-                // Calculer les paiements du mois en cours
-                const monthlyPayments = memberPayments.filter(p => {
-                    const paymentDate = new Date(p.date);
-                    return paymentDate.getMonth() === currentMonth &&
-                           paymentDate.getFullYear() === currentYear &&
-                           p.type === 'mensuelle';
+                // Filtrer les paiements du membre pour le mois en cours
+                const memberPayments = allPayments.filter(p => {
+                    if (!p || p.memberId !== memberId) return false;
+                    const pd = new Date(p.date);
+                    return pd.getMonth() === currentMonth && pd.getFullYear() === currentYear;
                 });
 
-                const weeklyPayments = memberPayments.filter(p => {
-                    const paymentDate = new Date(p.date);
-                    return paymentDate.getMonth() === currentMonth &&
-                           paymentDate.getFullYear() === currentYear &&
-                           p.type === 'hebdomadaire';
-                });
+                let isLate = false;
+                
+                // Si une configuration de retard existe, on l'utilise
+                if (lateConfig && lateConfig.entries && lateConfig.entries.length > 0) {
+                    for (const entry of lateConfig.entries) {
+                        const type = entry.id;
+                        const reqCount = entry.requiredCount || 1;
+                        
+                        // Calculer ce qui a été payé pour ce type
+                        const paid = memberPayments
+                            .filter(p => p.type === type)
+                            .reduce((sum, p) => sum + (p.montant || 0), 0);
+                        
+                        // Montant requis
+                        const price = getAmount(type, memberSexe, params);
+                        const required = price * reqCount;
 
-                // Calculer les montants totaux
-                const monthlyTotal = monthlyPayments.reduce((sum, p) => sum + (p.montant || 0), 0);
-                const weeklyTotal = weeklyPayments.reduce((sum, p) => sum + (p.montant || 0), 0);
+                        if (paid < required) {
+                            isLate = true;
+                            break;
+                        }
+                    }
+                } else {
+                    // Fallback sur l'ancienne logique si pas de config
+                    const weeklyPaid = memberPayments.filter(p => p.type === 'hebdomadaire').reduce((s,p)=>s+p.montant,0);
+                    const monthlyPaid = memberPayments.filter(p => p.type === 'mensuelle').reduce((s,p)=>s+p.montant,0);
+                    if (weeklyPaid < 1000 || monthlyPaid < 500) isLate = true;
+                }
 
-                // Déterminer le statut
-                return (weeklyTotal >= 1000 && monthlyTotal >= 500) ? 'À jour' : 'En retard';
+                return isLate ? 'En retard' : 'À jour';
 
             } catch (error) {
-                console.error('Erreur lors du calcul du statut des adiya:', error);
+                console.error('Erreur lors du calcul du statut:', error);
                 return 'Erreur';
             }
         }
@@ -467,10 +458,10 @@
                     throw new Error('Aucune donnée trouvée dans la base');
                 }
 
-                const usersData = usersSnapshot.val();
-                let memberData = null;
-                let allPayments = [];
-
+                // Collecter toutes les données nécessaires depuis l'utilisateur propriétaire
+                let lateConfig = null;
+                let dahiraParams = null;
+                
                 // Parcourir tous les utilisateurs pour trouver le membre
                 for (const userId in usersData) {
                     const userData = usersData[userId];
@@ -480,20 +471,19 @@
                         const member = Object.values(userData.membres).find(m => m.id === memberId);
                         if (member) {
                             memberData = member;
+                            lateConfig = userData.lateConfig || null;
+                            dahiraParams = userData.params || null;
                         }
                     }
                     
-                    // Collecter tous les paiements de tous les utilisateurs
+                    // Collecter tous les paiements...
                     if (userData.payments) {
+                        // ... (reste du code inchangé pour la collecte des paiements)
                         if (Array.isArray(userData.payments)) {
-                            // Si c'est un tableau direct
                             allPayments = allPayments.concat(userData.payments);
                         } else {
-                            // Si c'est un objet avec des clés (structure ancienne)
                             Object.values(userData.payments).forEach(payment => {
-                                if (Array.isArray(payment)) {
-                                    allPayments = allPayments.concat(payment);
-                                }
+                                if (Array.isArray(payment)) allPayments = allPayments.concat(payment);
                             });
                         }
                     }
@@ -503,14 +493,14 @@
                     throw new Error('Membre introuvable');
                 }
 
-                // Calculer le statut avec tous les paiements
-                const status = await getPaymentStatus(memberId, allPayments);
+                // Calculer le statut avec la configuration trouvée
+                const status = await getPaymentStatus(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams);
 
                 // Afficher les informations du membre
                 displayMemberInfo(memberData, memberId, status);
 
-                // Charger les paiements du membre
-                await loadMemberPayments(memberId, allPayments);
+                // Charger les paiements du membre (passer config et params pour le calcul des restants)
+                await loadMemberPayments(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams);
 
                 showProfile();
 
@@ -527,7 +517,7 @@
             if (memberData.photo && memberData.photo.startsWith('data:image')) {
                 photoContainer.innerHTML = `<img src="${memberData.photo}" alt="Photo de ${memberData.prenom} ${memberData.nom}" class="profile-photo">`;
             } else {
-                photoContainer.innerHTML = `<div class="profile-photo-placeholder">👤</div>`;
+                photoContainer.innerHTML = `<div class="profile-photo-placeholder"><i class="fas fa-user"></i></div>`;
             }
 
             // Nom et ID
@@ -614,7 +604,7 @@
                     totalItem.className = 'payment-total';
                     totalItem.innerHTML = `
                         <div class="total-info">
-                            <div class="total-label">💰 Total des ADIYA</div>
+                            <div class="total-label"><i class="fas fa-wallet"></i> Total des ADIYA</div>
                             <div class="total-count">(${allMemberPayments.length} paiement${allMemberPayments.length > 1 ? 's' : ''})</div>
                         </div>
                         <div class="total-amount">${formatCurrency(totalAmount)}</div>
@@ -716,38 +706,93 @@
                     // Si le membre est en retard, proposer les ADIYA restants à payer par Wave
                     const statusBadge = document.querySelector('#status-container .status-badge');
                     const isLate = statusBadge && statusBadge.textContent && statusBadge.textContent.includes('En retard');
+                    
                     if (isLate) {
-                        // calculer montants restants simples (basé sur les seuils utilisés)
-                        // Ne compter que les paiements du mois en cours pour le calcul des restants
                         const now = new Date();
                         const currentMonth = now.getMonth();
                         const currentYear = now.getFullYear();
-                        const weeklyPaid = allMemberPayments.filter(p => {
-                            const pd = new Date(p.date);
-                            return p.type === 'hebdomadaire' && pd.getMonth() === currentMonth && pd.getFullYear() === currentYear;
-                        }).reduce((s,p)=>s+(p.montant||0),0);
-                        const monthlyPaid = allMemberPayments.filter(p => {
-                            const pd = new Date(p.date);
-                            return p.type === 'mensuelle' && pd.getMonth() === currentMonth && pd.getFullYear() === currentYear;
-                        }).reduce((s,p)=>s+(p.montant||0),0);
-                        const weeklyRemaining = Math.max(0, 1000 - weeklyPaid);
-                        const monthlyRemaining = Math.max(0, 500 - monthlyPaid);
 
+                        // Section des restants à payer
                         const remainingSection = document.createElement('div');
                         remainingSection.style.marginTop = '12px';
-                        remainingSection.innerHTML = `
-                            <div style="font-weight:700; margin-bottom:8px; color:#b91c1c;">⚠️ ADIYA restants</div>
-                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                ${weeklyRemaining > 0 ? `<div style="background:#fff7ed;padding:10px;border-radius:8px;display:flex;align-items:center;gap:8px;"><div>Hebdomadaire: <strong>${formatCurrency(weeklyRemaining)}</strong></div><a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;"><img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;object-fit:contain;">Payer</a></div>` : ''}
-                                ${monthlyRemaining > 0 ? `<div style="background:#fff7ed;padding:10px;border-radius:8px;display:flex;align-items:center;gap:8px;"><div>Mensuelle: <strong>${formatCurrency(monthlyRemaining)}</strong></div><a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;"><img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;object-fit:contain;">Payer</a></div>` : ''}
-                            </div>
-                        `;
+                        remainingSection.innerHTML = `<div style="font-weight:700; margin-bottom:8px; color:#b91c1c;"><i class="fas fa-exclamation-triangle"></i> ADIYA restants</div>`;
+                        
+                        const grid = document.createElement('div');
+                        grid.style.display = 'flex';
+                        grid.style.gap = '8px';
+                        grid.style.flexWrap = 'wrap';
+
+                        // Utiliser la même logique que getPaymentStatus pour identifier ce qui manque
+                        if (arguments[3] && arguments[3].entries) { // arguments[3] est lateConfig
+                            const lConfig = arguments[3];
+                            const dParams = arguments[4]; // dahiraParams
+                            const mSexe = arguments[1];   // memberSexe
+
+                            const monthlyMemberPayments = allMemberPayments.filter(p => {
+                                const pd = new Date(p.date);
+                                return pd.getMonth() === currentMonth && pd.getFullYear() === currentYear;
+                            });
+
+                            lConfig.entries.forEach(entry => {
+                                const type = entry.id;
+                                const reqCount = entry.requiredCount || 1;
+                                const paid = monthlyMemberPayments.filter(p => p.type === type).reduce((s,p)=>s+p.montant,0);
+                                const price = getAmount(type, mSexe, dParams);
+                                const required = price * reqCount;
+                                const remaining = required - paid;
+
+                                if (remaining > 0) {
+                                    const card = document.createElement('div');
+                                    card.style.background = '#fff7ed';
+                                    card.style.padding = '10px';
+                                    card.style.borderRadius = '8px';
+                                    card.style.display = 'flex';
+                                    card.style.alignItems = 'center';
+                                    card.style.gap = '8px';
+                                    
+                                    const typeLabel = (eventsMap[type] || type.charAt(0).toUpperCase() + type.slice(1));
+                                    
+                                    card.innerHTML = `
+                                        <div>${typeLabel}: <strong>${formatCurrency(remaining)}</strong></div>
+                                        <a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;">
+                                            <img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;object-fit:contain;">Payer
+                                        </a>
+                                    `;
+                                    grid.appendChild(card);
+                                }
+                            });
+                        } else {
+                            // Fallback legacy (hebdo + mensuelle)
+                            const mPayments = allMemberPayments.filter(p => {
+                                const pd = new Date(p.date);
+                                return pd.getMonth() === currentMonth && pd.getFullYear() === currentYear;
+                            });
+                            const weeklyPaid = mPayments.filter(p => p.type === 'hebdomadaire').reduce((s,p)=>s+p.montant,0);
+                            const monthlyPaid = mPayments.filter(p => p.type === 'mensuelle').reduce((s,p)=>s+p.montant,0);
+                            const wRem = Math.max(0, 1000 - weeklyPaid);
+                            const mRem = Math.max(0, 500 - monthlyPaid);
+
+                            if (wRem > 0) {
+                                const c = document.createElement('div');
+                                c.style.background = '#fff7ed'; c.style.padding = '10px'; c.style.borderRadius = '8px'; c.style.display = 'flex'; c.style.alignItems = 'center'; c.style.gap = '8px';
+                                c.innerHTML = `<div>Hebdomadaire: <strong>${formatCurrency(wRem)}</strong></div><a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener""><img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;">Payer</a>`;
+                                grid.appendChild(c);
+                            }
+                            if (mRem > 0) {
+                                const c = document.createElement('div');
+                                c.style.background = '#fff7ed'; c.style.padding = '10px'; c.style.borderRadius = '8px'; c.style.display = 'flex'; c.style.alignItems = 'center'; c.style.gap = '8px';
+                                c.innerHTML = `<div>Mensuelle: <strong>${formatCurrency(mRem)}</strong></div><a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener""><img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;">Payer</a>`;
+                                grid.appendChild(c);
+                            }
+                        }
+                        
+                        remainingSection.appendChild(grid);
                         paymentsContainer.appendChild(remainingSection);
                     }
                 } else {
                     paymentsContainer.innerHTML = `
                         <div class="empty-state">
-                            <p>📝 Aucun ADIYA enregistré</p>
+                            <p><i class="fas fa-clipboard-list"></i> Aucun ADIYA enregistré</p>
                         </div>
                     `;
                 }
