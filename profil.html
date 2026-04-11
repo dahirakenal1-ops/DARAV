@@ -395,7 +395,7 @@
         }
 
         // Calculer le statut de paiement du membre selon la configuration
-        async function getPaymentStatus(memberId, memberSexe, allPayments, lateConfig, params) {
+        async function getPaymentStatus(memberId, memberSexe, allPayments, lateConfig, params, allEvents = []) {
             try {
                 const now = new Date();
                 const currentMonth = now.getMonth();
@@ -413,17 +413,30 @@
                 // Si une configuration de retard existe, on l'utilise
                 if (lateConfig && lateConfig.entries && lateConfig.entries.length > 0) {
                     for (const entry of lateConfig.entries) {
-                        const type = entry.id;
+                        const type = entry.id || '';
                         const reqCount = entry.requiredCount || 1;
-                        
-                        // Calculer ce qui a été payé pour ce type
-                        const paid = memberPayments
-                            .filter(p => p.type === type)
-                            .reduce((sum, p) => sum + (p.montant || 0), 0);
-                        
-                        // Montant requis
-                        const price = getAmount(type, memberSexe, params);
-                        const required = price * reqCount;
+                        let paid = 0;
+                        let required = 0;
+
+                        if (type.startsWith('event:')) {
+                            // C'est un événement
+                            const eid = type.split(':')[1];
+                            const evt = allEvents.find(e => e && (e.id == eid || e.id == `event-${eid}`));
+                            if (evt) {
+                                // On vérifie les paiements faits sur la caisse de l'événement
+                                paid = memberPayments
+                                    .filter(p => p.type === evt.caisse)
+                                    .reduce((sum, p) => sum + (p.montant || 0), 0);
+                                required = (evt.fee || 0) * reqCount;
+                            }
+                        } else {
+                            // C'est une caisse standard (hebdo, mensuelle, etc)
+                            paid = memberPayments
+                                .filter(p => p.type === type)
+                                .reduce((sum, p) => sum + (p.montant || 0), 0);
+                            const price = getAmount(type, memberSexe, params);
+                            required = price * reqCount;
+                        }
 
                         if (paid < required) {
                             isLate = true;
@@ -495,14 +508,31 @@
                     throw new Error('Membre introuvable');
                 }
 
+                // Charger les événements pour les prix et noms
+                let allEvents = [];
+                try {
+                    const eventsSnap = await get(ref(database, 'events'));
+                    if (eventsSnap.exists()) {
+                        const evData = eventsSnap.val();
+                        allEvents = Array.isArray(evData) ? evData : Object.values(evData);
+                    }
+                    // Compléter avec les événements des utilisateurs
+                    for (const uid in usersData) {
+                        if (usersData[uid].events) {
+                            const uEvts = Array.isArray(usersData[uid].events) ? usersData[uid].events : Object.values(usersData[uid].events);
+                            uEvts.forEach(e => { if (e && !allEvents.find(x => x.id == e.id)) allEvents.push(e); });
+                        }
+                    }
+                } catch (e) { console.warn('Erreur events fetch', e); }
+
                 // Calculer le statut avec la configuration trouvée
-                const status = await getPaymentStatus(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams);
+                const status = await getPaymentStatus(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams, allEvents);
 
                 // Afficher les informations du membre
                 displayMemberInfo(memberData, memberId, status);
 
                 // Charger les paiements du membre (passer config et params pour le calcul des restants)
-                await loadMemberPayments(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams);
+                await loadMemberPayments(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams, allEvents);
 
                 showProfile();
 
@@ -542,7 +572,8 @@
         }
 
         // Charger les paiements du membre
-        async function loadMemberPayments(memberId, memberSexe, allPayments = null, lateConfig = null, dahiraParams = null) {
+        // Charger les paiements du membre
+        async function loadMemberPayments(memberId, memberSexe, allPayments = null, lateConfig = null, dahiraParams = null, allEvents = []) {
             try {
                 let payments = allPayments;
 
@@ -729,6 +760,7 @@
                             const lConfig = arguments[3];
                             const dParams = arguments[4]; // dahiraParams
                             const mSexe = arguments[1];   // memberSexe
+                            const evtsList = arguments[5] || []; // allEvents
 
                             const monthlyMemberPayments = allMemberPayments.filter(p => {
                                 const pd = new Date(p.date);
@@ -736,10 +768,26 @@
                             });
 
                             lConfig.entries.forEach(entry => {
-                                const type = entry.id;
+                                const type = entry.id || '';
                                 const reqCount = entry.requiredCount || 1;
-                                const paid = monthlyMemberPayments.filter(p => p.type === type).reduce((s,p)=>s+p.montant,0);
-                                const price = getAmount(type, mSexe, dParams);
+                                let paid = 0;
+                                let price = 0;
+                                let label = '';
+
+                                if (type.startsWith('event:')) {
+                                    const eid = type.split(':')[1];
+                                    const evt = evtsList.find(e => e && (e.id == eid || e.id == `event-${eid}`));
+                                    if (evt) {
+                                        paid = monthlyMemberPayments.filter(p => p.type === evt.caisse).reduce((s,p)=>s+p.montant,0);
+                                        price = evt.fee || 0;
+                                        label = evt.title || evt.titre || 'Événement';
+                                    }
+                                } else {
+                                    paid = monthlyMemberPayments.filter(p => p.type === type).reduce((s,p)=>s+p.montant,0);
+                                    price = getAmount(type, mSexe, dParams);
+                                    label = type.charAt(0).toUpperCase() + type.slice(1);
+                                }
+
                                 const required = price * reqCount;
                                 const remaining = required - paid;
 
@@ -752,10 +800,8 @@
                                     card.style.alignItems = 'center';
                                     card.style.gap = '8px';
                                     
-                                    const typeLabel = (eventsMap[type] || type.charAt(0).toUpperCase() + type.slice(1));
-                                    
                                     card.innerHTML = `
-                                        <div>${typeLabel}: <strong>${formatCurrency(remaining)}</strong></div>
+                                        <div>${label}: <strong>${formatCurrency(remaining)}</strong></div>
                                         <a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;">
                                             <img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;object-fit:contain;">Payer
                                         </a>
