@@ -108,9 +108,22 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 30%;
+            height: 40%;
             background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-medium) 100%);
-            clip-path: ellipse(120% 100% at 50% 0%);
+            clip-path: ellipse(80% 60% at 50% 0%);
+            z-index: 1;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .card-front::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 25%;
+            background: linear-gradient(135deg, var(--green-medium) 0%, var(--green-dark) 100%);
+            clip-path: ellipse(100% 70% at 50% 100%);
             z-index: 1;
         }
 
@@ -119,33 +132,45 @@
             display: flex;
             align-items: center;
             padding: 0 15px;
-            gap: 12px;
+            gap: 15px;
             color: white;
             position: relative;
             z-index: 2;
         }
 
         .card-logo-circle {
-            width: 45px;
-            height: 45px;
+            width: 50px;
+            height: 50px;
             background: white;
             border-radius: 50%;
-            padding: 4px;
+            padding: 5px;
+            border: 2px solid transparent;
             background-image: linear-gradient(white, white), var(--gold-gradient);
             background-origin: border-box;
             background-clip: padding-box, border-box;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
         .logo-img { width: 100%; height: 100%; object-fit: contain; }
 
         .dahira-name {
-            font-size: 0.85rem;
+            font-size: 1rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .card-subtitle {
+            font-size: 0.7rem;
+            font-weight: 600;
+            opacity: 0.9;
+            letter-spacing: 2px;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            margin-top: 2px;
+            padding-top: 2px;
         }
 
         .card-content-front {
@@ -159,14 +184,26 @@
         }
 
         .card-photo-container {
-            width: 100px;
-            height: 120px;
-            border-radius: 8px;
+            width: 110px;
+            height: 130px;
+            border-radius: 5px;
             overflow: hidden;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-            background: #f1f5f9;
-            border: 2px solid white;
+            background: #eee;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            position: relative;
+            padding: 2px;
+            background-image: var(--gold-gradient);
+            border: 1px solid rgba(255,215,0,0.3);
             flex-shrink: 0;
+        }
+
+        .card-photo-container::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 1px solid rgba(255,255,255,0.4);
+            pointer-events: none;
+            border-radius: 4px;
         }
 
         .member-photo-premium { width: 100%; height: 100%; object-fit: cover; }
@@ -182,9 +219,9 @@
             gap: 5px;
         }
 
-        .info-row { display: flex; align-items: baseline; gap: 5px; }
-        .info-label { font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; width: 60px; }
-        .info-value { font-size: 0.85rem; font-weight: 700; color: #1e293b; overflow: hidden; text-overflow: ellipsis; }
+        .info-row { display: flex; align-items: baseline; gap: 10px; font-size: 0.9rem; margin-bottom: 2px; }
+        .info-label { font-size: 0.8rem; font-weight: 800; color: var(--green-dark); text-transform: uppercase; width: 85px; opacity: 0.8; letter-spacing: 0.5px; }
+        .info-value { font-size: 1rem; font-weight: 700; color: #1a3a14; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-word; line-height: 1.1; }
 
         .info-value.underline {
             border-bottom: 2px solid var(--green-medium);
@@ -617,9 +654,12 @@
                 <div class="card-face card-front">
                     <div class="card-header-premium">
                         <div class="card-logo-circle">
-                            <img src="../zakat.png" alt="Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/40'">
+                            <img src="logo.jpeg" alt="Logo" class="logo-img" onerror="this.src='../zakat.png'">
                         </div>
-                        <div class="dahira-name">Dahira kenaL Serigne Touba</div>
+                        <div class="card-header-text">
+                            <div class="dahira-name">Dahira kenaL Serigne Touba</div>
+                            <div class="card-subtitle">DAHIRA BI MÉRE SERIGNE TOUBA</div>
+                        </div>
                     </div>
                     
                     <div class="card-content-front">
@@ -632,7 +672,7 @@
                         <div class="card-p-info">
                             <div class="info-row"><span class="info-label">Nom:</span> <span class="info-value underline">${memberData.nom.toUpperCase()}</span></div>
                             <div class="info-row"><span class="info-label">Prénom:</span> <span class="info-value underline">${memberData.prenom.toUpperCase()}</span></div>
-                            <div class="info-row"><span class="info-label">ID:</span> <span class="info-value underline">${memberId.slice(-6).toUpperCase()}</span></div>
+                            <div class="info-row"><span class="info-label">N°Membre:</span> <span class="info-value underline">${memberId.slice(-6).toUpperCase()}</span></div>
                             <div class="info-row"><span class="info-label">Statut:</span> <span class="info-value underline" style="color:var(--green-medium); text-transform:uppercase;">${rolesDisplay}</span></div>
                         </div>
                     </div>
@@ -950,7 +990,7 @@
                 console.error('Erreur lors du chargement des ADIYA:', error);
                 document.getElementById('payments-container').innerHTML = `
                     <div class="error">
-                        <p> Erreur lors du chargement des ADIYA</p>
+                        <p>❌ Erreur lors du chargement des ADIYA</p>
                     </div>
                 `;
             }
