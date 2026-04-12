@@ -261,6 +261,23 @@
             text-align: center; font-size: 0.8rem; color: #94a3b8; margin-top: -15px; margin-bottom: 20px;
         }
 
+        .btn-wave-only {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            background: #00adef;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        .btn-wave-only:hover { transform: scale(1.1); }
+        .btn-wave-only img { width: 22px; height: 22px; object-fit: contain; }
+
         @media (max-width: 480px) {
             body {
                 padding: 5px;
@@ -557,7 +574,7 @@
                 displayMemberInfo(memberData, memberId, status);
 
                 // Charger les paiements du membre (passer config et params pour le calcul des restants)
-                await loadMemberPayments(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams, allEvents);
+                await loadMemberPayments(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams, allEvents, status);
 
                 showProfile();
 
@@ -657,7 +674,8 @@
 
         // Charger les paiements du membre
         // Charger les paiements du membre
-        async function loadMemberPayments(memberId, memberSexe, allPayments = null, lateConfig = null, dahiraParams = null, allEvents = []) {
+        // Charger les paiements du membre
+        async function loadMemberPayments(memberId, memberSexe, allPayments = null, lateConfig = null, dahiraParams = null, allEvents = [], status = '') {
             try {
                 let payments = allPayments;
 
@@ -821,8 +839,7 @@
                         paymentsContainer.appendChild(paymentItem);
                     });
                     // Si le membre est en retard, proposer les ADIYA restants à payer par Wave
-                    const statusBadge = document.querySelector('#status-container .status-badge');
-                    const isLate = statusBadge && statusBadge.textContent && statusBadge.textContent.includes('En retard');
+                    const isLate = status.includes('En retard');
                     
                     if (isLate) {
                         const now = new Date();
@@ -886,8 +903,8 @@
                                     
                                     card.innerHTML = `
                                         <div>${label}: <strong>${formatCurrency(remaining)}</strong></div>
-                                        <a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;">
-                                            <img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;object-fit:contain;">Payer
+                                        <a class="btn-wave-only" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" title="Payer avec Wave">
+                                            <img src="wave-mobile-money-logo.avif" alt="Wave">
                                         </a>
                                     `;
                                     grid.appendChild(card);
@@ -907,13 +924,13 @@
                             if (wRem > 0) {
                                 const c = document.createElement('div');
                                 c.style.background = '#fff7ed'; c.style.padding = '10px'; c.style.borderRadius = '8px'; c.style.display = 'flex'; c.style.alignItems = 'center'; c.style.gap = '8px';
-                                c.innerHTML = `<div>Hebdomadaire: <strong>${formatCurrency(wRem)}</strong></div><a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener""><img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;">Payer</a>`;
+                                c.innerHTML = `<div>Hebdomadaire: <strong>${formatCurrency(wRem)}</strong></div><a class="btn-wave-only" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" title="Payer avec Wave"><img src="wave-mobile-money-logo.avif" alt="Wave"></a>`;
                                 grid.appendChild(c);
                             }
                             if (mRem > 0) {
                                 const c = document.createElement('div');
                                 c.style.background = '#fff7ed'; c.style.padding = '10px'; c.style.borderRadius = '8px'; c.style.display = 'flex'; c.style.alignItems = 'center'; c.style.gap = '8px';
-                                c.innerHTML = `<div>Mensuelle: <strong>${formatCurrency(mRem)}</strong></div><a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener""><img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;">Payer</a>`;
+                                c.innerHTML = `<div>Mensuelle: <strong>${formatCurrency(mRem)}</strong></div><a class="btn-wave-only" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" title="Payer avec Wave"><img src="wave-mobile-money-logo.avif" alt="Wave"></a>`;
                                 grid.appendChild(c);
                             }
                         }
@@ -933,7 +950,7 @@
                 console.error('Erreur lors du chargement des ADIYA:', error);
                 document.getElementById('payments-container').innerHTML = `
                     <div class="error">
-                        <p>❌ Erreur lors du chargement des ADIYA</p>
+                        <p> Erreur lors du chargement des ADIYA</p>
                     </div>
                 `;
             }
