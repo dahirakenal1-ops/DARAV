@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Membre - Dahira Kenal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green-dark: #064e3b;
+            --green-medium: #059669;
+            --green-light: #10b981;
+            --gold: #D4AF37;
+            --gold-gradient: linear-gradient(45deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            color: #1e293b;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        /* Badge de Statut Adiya */
+        .adiya-status-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        .status-badge-premium {
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-ok { background: #dcfce7; color: #166534; border: 2px solid #bcf0da; }
+        .status-late { background: #fee2e2; color: #991b1b; border: 2px solid #fecaca; }
+
+        /* Système de Carte Flip */
+        .member-card-wrapper {
+            perspective: 1000px;
+            width: 100%;
+            aspect-ratio: 1.58 / 1;
+            margin-bottom: 30px;
+            cursor: pointer;
+        }
+
+        .member-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: left;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .member-card-wrapper.flipped .member-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            background: white;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* RECTO */
+        .card-front {
+            background: white;
+            color: #333;
+        }
+
+        .card-front::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 30%;
+            background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-medium) 100%);
+            clip-path: ellipse(120% 100% at 50% 0%);
+            z-index: 1;
+        }
+
+        .card-header-premium {
+            height: 25%;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            gap: 12px;
+            color: white;
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-logo-circle {
+            width: 45px;
+            height: 45px;
+            background: white;
+            border-radius: 50%;
+            padding: 4px;
+            background-image: linear-gradient(white, white), var(--gold-gradient);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-img { width: 100%; height: 100%; object-fit: contain; }
+
+        .dahira-name {
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-content-front {
+            height: 65%;
+            display: flex;
+            padding: 15px;
+            gap: 15px;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-photo-container {
+            width: 100px;
+            height: 120px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            background: #f1f5f9;
+            border: 2px solid white;
+            flex-shrink: 0;
+        }
+
+        .member-photo-premium { width: 100%; height: 100%; object-fit: cover; }
+        .member-photo-placeholder-premium {
+            width: 100%; height: 100%; display: flex; align-items: center;
+            justify-content: center; font-size: 2.5rem; color: #cbd5e1;
+        }
+
+        .card-p-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-row { display: flex; align-items: baseline; gap: 5px; }
+        .info-label { font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; width: 60px; }
+        .info-value { font-size: 0.85rem; font-weight: 700; color: #1e293b; overflow: hidden; text-overflow: ellipsis; }
+
+        .info-value.underline {
+            border-bottom: 2px solid var(--green-medium);
+            padding-bottom: 1px;
+        }
+
+        /* VERSO */
+        .card-back {
+            background: var(--green-dark);
+            color: white;
+            transform: rotateY(180deg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-back::before {
+            content: '';
+            position: absolute;
+            top: -50px; right: -50px;
+            width: 200px; height: 200px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 50%;
+        }
+
+        .card-content-back {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: center;
+        }
+
+        .back-info-row {
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+        }
+
+        .back-label { font-size: 0.6rem; text-transform: uppercase; font-weight: 800; opacity: 0.6; letter-spacing: 1px; }
+        .back-value { font-size: 0.9rem; font-weight: 600; }
+
+        .special-mention {
+            font-family: cursive;
+            font-size: 1.5rem;
+            color: #FFD700;
+            text-align: center;
+            margin: 15px 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Autres Sections */
+        .payments-section { padding: 20px; }
+        .section-title { font-size: 1.1rem; color: var(--green-dark); margin-bottom: 15px; font-weight: 700; }
+        .payment-item {
+            background: white; border-radius: 12px; padding: 12px 15px;
+            margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+            border-left: 4px solid var(--green-medium);
+        }
+        .payment-amount { font-weight: 700; color: var(--green-dark); }
+        .payment-total {
+            background: var(--green-dark); color: white; padding: 15px;
+            border-radius: 15px; margin-bottom: 20px; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+
+        .loader { display: flex; flex-direction: column; align-items: center; padding: 100px 0; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--green-medium); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .card-tip {
+            text-align: center; font-size: 0.8rem; color: #94a3b8; margin-top: -15px; margin-bottom: 20px;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                max-width: 100%;
+            }
+
+            .profile-header {
+                padding: 15px;
+            }
+
+            .profile-photo, .profile-photo-placeholder {
+                width: 70px;
+                height: 70px;
+            }
+
+            .profile-name {
+                font-size: 1.2rem;
+            }
+
+            .payments-section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loader" class="loader">
+            <div class="spinner"></div>
+            <p>Chargement du profil...</p>
+        </div>
+
+        <div id="profile-content" style="display: none;">
+            <!-- Badge Statut Adiya (Haut de page) -->
+            <div id="adiya-status-area" class="adiya-status-container">
+                <!-- Badge injecté par JS -->
+            </div>
+
+            <!-- Carte de membre Interactive -->
+            <div class="member-card-wrapper" onclick="this.classList.toggle('flipped')">
+                <div class="member-card-inner" id="premium-card-container">
+                    <!-- HTML de la carte généré par displayMemberInfo -->
+                </div>
+            </div>
+            <p class="card-tip"><i class="fas fa-sync"></i> Cliquez sur la carte pour la retourner</p>
+
+            <!-- Actions Secondaires (Appel) -->
+            <div style="display: flex; justify-content: center; margin-bottom: 30px;">
+                <a id="call-button" class="btn-actions-toggle" style="display: none; width: auto; text-decoration: none; background: white; color: var(--green-dark);">
+                    <i class="fas fa-phone"></i> Appeler le membre
+                </a>
+            </div>
+
+            <!-- Payments Section -->
+            <div class="profile-card">
+                <div class="payments-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-coins"></i> Historique des ADIYA
+                    </h2>
+                    <div id="payments-container">
+                        <!-- Payments will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error-content" style="display: none;">
+            <div class="error">
+                <h2><i class="fas fa-circle-xmark"></i> Erreur</h2>
+                <p id="error-message">Impossible de charger le profil du membre.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getDatabase, ref, get, child } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBkcnXxfcw4TN3DSmtUeimJ5br7PuBpqVo",
+            authDomain: "dahira-kenal.firebaseapp.com",
+            databaseURL: "https://dahira-kenal-default-rtdb.firebaseio.com",
+            projectId: "dahira-kenal",
+            storageBucket: "dahira-kenal.firebasestorage.app",
+            messagingSenderId: "363618938352",
+            appId: "1:363618938352:web:307a7e87a9571cf08d4135",
+            measurementId: "G-MD6F2PKZZY"
+        };
+
+        // Initialiser Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Définitions standards des rôles pour le mapping
+        const roleDefinitions = [
+            { id: 'membre-simple', label: 'Simple' },
+            { id: 'membre-finance', label: 'Finance' },
+            { id: 'membre-bureau', label: 'Bureau' },
+            { id: 'membre-audiovisuel', label: 'Audio-Visuel' },
+            { id: 'membre-culturel', label: 'Culturel' },
+            { id: 'membre-kourel', label: 'Kourel' },
+            { id: 'membre-organisation', label: 'Organisation' }
+        ];
+
+        // Fonctions utilitaires
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        function formatCurrency(amount) {
+            if (!amount && amount !== 0) return '0 FCFA';
+            return `${amount.toLocaleString('fr-FR')} FCFA`;
+        }
+
+        function showLoader() {
+            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('profile-content').style.display = 'none';
+            document.getElementById('error-content').style.display = 'none';
+        }
+
+        function showProfile() {
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('profile-content').style.display = 'block';
+            document.getElementById('error-content').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('profile-content').style.display = 'none';
+            document.getElementById('error-content').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        // Fonction type 'getAmount' pour récupérer les montants configurés
+        function getAmount(type, sexe, params) {
+            if (!params || !params.amounts || !params.amounts[type]) return 0;
+            const rates = params.amounts[type];
+            if (sexe === 'F' && rates.F !== undefined) return rates.F;
+            if (sexe === 'M' && rates.M !== undefined) return rates.M;
+            return rates.all !== undefined ? rates.all : 0;
+        }
+
+        // Calculer le statut de paiement du membre selon la configuration
+        async function getPaymentStatus(memberId, memberSexe, allPayments, lateConfig, params, allEvents = []) {
+            try {
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+
+                // Filtrer les paiements du membre pour le mois en cours
+                const memberPayments = allPayments.filter(p => {
+                    if (!p || p.memberId !== memberId) return false;
+                    const pd = new Date(p.date);
+                    return pd.getMonth() === currentMonth && pd.getFullYear() === currentYear;
+                });
+
+                let isLate = false;
+                
+                // Si une configuration de retard existe, on l'utilise
+                if (lateConfig && lateConfig.entries && lateConfig.entries.length > 0) {
+                    for (const entry of lateConfig.entries) {
+                        const type = entry.id || '';
+                        const reqCount = entry.requiredCount || 1;
+                        let paid = 0;
+                        let required = 0;
+
+                        if (type.startsWith('event:')) {
+                            // C'est un événement
+                            const eid = type.split(':')[1];
+                            const evt = allEvents.find(e => e && (e.id == eid || e.id == `event-${eid}`));
+                            if (evt) {
+                                // On vérifie les paiements faits sur la caisse de l'événement
+                                paid = memberPayments
+                                    .filter(p => p.type === evt.caisse)
+                                    .reduce((sum, p) => sum + (p.montant || 0), 0);
+                                required = (evt.fee || 0) * reqCount;
+                            }
+                        } else {
+                            // C'est une caisse standard (hebdo, mensuelle, etc)
+                            paid = memberPayments
+                                .filter(p => p.type === type)
+                                .reduce((sum, p) => sum + (p.montant || 0), 0);
+                            const price = getAmount(type, memberSexe, params);
+                            required = price * reqCount;
+                        }
+
+                        if (paid < required) {
+                            isLate = true;
+                            break;
+                        }
+                    }
+                } else {
+                    // Fallback sur l'ancienne logique si pas de config
+                    const weeklyPaid = memberPayments.filter(p => p.type === 'hebdomadaire').reduce((s,p)=>s+p.montant,0);
+                    const monthlyPaid = memberPayments.filter(p => p.type === 'mensuelle').reduce((s,p)=>s+p.montant,0);
+                    if (weeklyPaid < 1000 || monthlyPaid < 500) isLate = true;
+                }
+
+                return isLate ? 'En retard' : 'À jour';
+
+            } catch (error) {
+                console.error('Erreur lors du calcul du statut:', error);
+                return 'Erreur';
+            }
+        }
+
+        // Charger les données du membre
+        async function loadMemberProfile(memberId) {
+            try {
+                showLoader();
+
+                // Chercher dans tous les utilisateurs (puisque les données sont stockées par user)
+                const usersRef = ref(database, 'users');
+                const usersSnapshot = await get(usersRef);
+
+                if (!usersSnapshot.exists()) {
+                    throw new Error('Aucune donnée trouvée dans la base');
+                }
+
+                const usersData = usersSnapshot.val();
+                let memberData = null;
+                let allPayments = [];
+                let lateConfig = null;
+                let dahiraParams = null;
+                
+                // Parcourir tous les utilisateurs pour trouver le membre
+                for (const userId in usersData) {
+                    const userData = usersData[userId];
+                    
+                    // Chercher le membre dans les données de cet utilisateur
+                    if (userData.membres) {
+                        const member = Object.values(userData.membres).find(m => m.id === memberId);
+                        if (member) {
+                            memberData = member;
+                            lateConfig = userData.lateConfig || null;
+                            dahiraParams = userData.params || null;
+                        }
+                    }
+                    
+                    // Collecter tous les paiements...
+                    if (userData.payments) {
+                        // ... (reste du code inchangé pour la collecte des paiements)
+                        if (Array.isArray(userData.payments)) {
+                            allPayments = allPayments.concat(userData.payments);
+                        } else {
+                            Object.values(userData.payments).forEach(payment => {
+                                if (Array.isArray(payment)) allPayments = allPayments.concat(payment);
+                            });
+                        }
+                    }
+                }
+
+                if (!memberData) {
+                    throw new Error('Membre introuvable');
+                }
+
+                // Charger les événements pour les prix et noms
+                let allEvents = [];
+                try {
+                    const eventsSnap = await get(ref(database, 'events'));
+                    if (eventsSnap.exists()) {
+                        const evData = eventsSnap.val();
+                        allEvents = Array.isArray(evData) ? evData : Object.values(evData);
+                    }
+                    // Compléter avec les événements des utilisateurs
+                    for (const uid in usersData) {
+                        if (usersData[uid].events) {
+                            const uEvts = Array.isArray(usersData[uid].events) ? usersData[uid].events : Object.values(usersData[uid].events);
+                            uEvts.forEach(e => { if (e && !allEvents.find(x => x.id == e.id)) allEvents.push(e); });
+                        }
+                    }
+                } catch (e) { console.warn('Erreur events fetch', e); }
+
+                // Calculer le statut avec la configuration trouvée
+                const status = await getPaymentStatus(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams, allEvents);
+
+                // Afficher les informations du membre
+                displayMemberInfo(memberData, memberId, status);
+
+                // Charger les paiements du membre (passer config et params pour le calcul des restants)
+                await loadMemberPayments(memberId, memberData.sexe, allPayments, lateConfig, dahiraParams, allEvents);
+
+                showProfile();
+
+            } catch (error) {
+                console.error('Erreur lors du chargement du profil:', error);
+                showError(error.message || 'Erreur lors du chargement du profil');
+            }
+        }
+
+        // Afficher les informations du membre
+        function displayMemberInfo(memberData, memberId, status) {
+            // 1. Badge Statut Adiya (Financier) - EN HAUT DE PAGE
+            const adiyaArea = document.getElementById('adiya-status-area');
+            const isOk = status === 'À jour';
+            adiyaArea.innerHTML = `
+                <div class="status-badge-premium ${isOk ? 'status-ok' : 'status-late'}">
+                    <i class="fas fa-${isOk ? 'check-circle' : 'exclamation-circle'}"></i>
+                    ${status}
+                </div>
+            `;
+
+            // 2. Préparation des données de la carte
+            const photoUrl = (memberData.photo && memberData.photo.startsWith('data:image')) ? memberData.photo : null;
+            
+            // Mapping du rôle (Statut Organisationnel)
+            const memberRoles = memberData.roles || [];
+            let rolesDisplay = 'Membre';
+            if (memberRoles.length > 0) {
+                const labels = memberRoles.map(rid => {
+                    const found = roleDefinitions.find(r => r.id === rid);
+                    return found ? found.label : rid;
+                });
+                rolesDisplay = labels[0]; // On prend le premier rôle principal
+            }
+
+            // HTML de la CARTE PREMIUM (Recto/Verso)
+            const cardContainer = document.getElementById('premium-card-container');
+            cardContainer.innerHTML = `
+                <!-- RECTO -->
+                <div class="card-face card-front">
+                    <div class="card-header-premium">
+                        <div class="card-logo-circle">
+                            <img src="../zakat.png" alt="Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/40'">
+                        </div>
+                        <div class="dahira-name">Dahira kenaL Serigne Touba</div>
+                    </div>
+                    
+                    <div class="card-content-front">
+                        <div class="card-photo-container">
+                            ${photoUrl ? 
+                                `<img src="${photoUrl}" alt="Photo" class="member-photo-premium">` : 
+                                `<div class="member-photo-placeholder-premium"><i class="fas fa-user"></i></div>`
+                            }
+                        </div>
+                        <div class="card-p-info">
+                            <div class="info-row"><span class="info-label">Nom:</span> <span class="info-value underline">${memberData.nom.toUpperCase()}</span></div>
+                            <div class="info-row"><span class="info-label">Prénom:</span> <span class="info-value underline">${memberData.prenom.toUpperCase()}</span></div>
+                            <div class="info-row"><span class="info-label">ID:</span> <span class="info-value underline">${memberId.slice(-6).toUpperCase()}</span></div>
+                            <div class="info-row"><span class="info-label">Statut:</span> <span class="info-value underline" style="color:var(--green-medium); text-transform:uppercase;">${rolesDisplay}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VERSO (Sans QR Code car inutile sur la page) -->
+                <div class="card-face card-back">
+                    <div class="card-content-back">
+                        <div class="dahira-name" style="font-size: 0.65rem; color: #FFD700; opacity: 0.8; margin-bottom: 5px;">DAHIRA KENAL SERIGNE TOUBA</div>
+                        <div class="special-mention">Carte Personnelle</div>
+                        
+                        <div style="margin-top: 10px;">
+                            <div class="back-info-row">
+                                <span class="back-label">Adresse</span>
+                                <span class="back-value">${memberData.adresse || 'N/A'}</span>
+                            </div>
+                            <div class="back-info-row">
+                                <span class="back-label">Téléphone</span>
+                                <span class="back-value">${memberData.telephone || 'N/A'}</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: auto; font-size: 0.65rem; text-align: center; opacity: 0.7; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">
+                            Verification Digitale effectuée le ${new Date().toLocaleDateString('fr-FR')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Bouton d'appel (Sous la carte)
+            const callButton = document.getElementById('call-button');
+            if (memberData.telephone) {
+                callButton.href = `tel:${memberData.telephone}`;
+                callButton.style.display = 'inline-flex';
+            } else {
+                callButton.style.display = 'none';
+            }
+        }
+
+        // Charger les paiements du membre
+        // Charger les paiements du membre
+        async function loadMemberPayments(memberId, memberSexe, allPayments = null, lateConfig = null, dahiraParams = null, allEvents = []) {
+            try {
+                let payments = allPayments;
+
+                // Si on n'a pas les paiements, les charger depuis tous les utilisateurs
+                if (!payments) {
+                    const usersRef = ref(database, 'users');
+                    const usersSnapshot = await get(usersRef);
+
+                    if (usersSnapshot.exists()) {
+                        const usersData = usersSnapshot.val();
+                        payments = [];
+
+                        // Collecter tous les paiements de tous les utilisateurs
+                        for (const userId in usersData) {
+                            const userData = usersData[userId];
+                            if (userData.payments) {
+                                if (Array.isArray(userData.payments)) {
+                                    // Si c'est un tableau direct
+                                    payments = payments.concat(userData.payments);
+                                } else {
+                                    // Si c'est un objet avec des clés (structure ancienne)
+                                    Object.values(userData.payments).forEach(paymentArray => {
+                                        if (Array.isArray(paymentArray)) {
+                                            payments = payments.concat(paymentArray);
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    } else {
+                        payments = [];
+                    }
+                }
+
+                const paymentsContainer = document.getElementById('payments-container');
+                paymentsContainer.innerHTML = '';
+
+                const allMemberPayments = [];
+
+                // Filtrer les paiements de ce membre
+                payments.forEach(payment => {
+                    if (payment && payment.memberId === memberId) {
+                        allMemberPayments.push({
+                            type: payment.type,
+                            date: payment.date,
+                            montant: payment.montant,
+                            key: payment.id || Date.now().toString()
+                        });
+                    }
+                });
+
+                // Trier par date décroissante
+                allMemberPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                // Calculer le total des paiements
+                const totalAmount = allMemberPayments.reduce((sum, payment) => sum + (payment.montant || 0), 0);
+
+                if (allMemberPayments.length > 0) {
+                    // Afficher le total
+                    const totalItem = document.createElement('div');
+                    totalItem.className = 'payment-total';
+                    totalItem.innerHTML = `
+                        <div class="total-info">
+                            <div class="total-label"><i class="fas fa-wallet"></i> Total des ADIYA</div>
+                            <div class="total-count">(${allMemberPayments.length} paiement${allMemberPayments.length > 1 ? 's' : ''})</div>
+                        </div>
+                        <div class="total-amount">${formatCurrency(totalAmount)}</div>
+                    `;
+                    paymentsContainer.appendChild(totalItem);
+
+                    // Séparateur
+                    const separator = document.createElement('div');
+                    separator.className = 'payments-separator';
+                    paymentsContainer.appendChild(separator);
+
+                    // Récupérer la liste des événements (si disponible dans la DB)
+                    const eventsMap = {};
+                    try {
+                        const eventsRef = ref(database, 'events');
+                        const eventsSnap = await get(eventsRef);
+                        if (eventsSnap.exists()) {
+                            const evts = eventsSnap.val();
+                            // evts peut être un objet ou un tableau
+                            if (Array.isArray(evts)) {
+                                evts.forEach(e => {
+                                    if (e && e.id) {
+                                        const idStr = e.id.toString();
+                                        const title = e.title || e.name || e.titre || e.title;
+                                        eventsMap[idStr] = title;
+                                        eventsMap[`event-${idStr}`] = title;
+                                    }
+                                });
+                            } else {
+                                Object.values(evts).forEach(e => {
+                                    if (e && e.id) {
+                                        const idStr = e.id.toString();
+                                        const title = e.title || e.name || e.titre || e.title;
+                                        eventsMap[idStr] = title;
+                                        eventsMap[`event-${idStr}`] = title;
+                                    }
+                                });
+                            }
+                        } else {
+                            // tenter de récupérer events sous chaque user
+                            const usersRef2 = ref(database, 'users');
+                            const usersSnap2 = await get(usersRef2);
+                            if (usersSnap2.exists()) {
+                                const usersData2 = usersSnap2.val();
+                                for (const uid in usersData2) {
+                                    const u = usersData2[uid];
+                                    if (u.events) {
+                                        if (Array.isArray(u.events)) {
+                                            u.events.forEach(e => {
+                                                if (e && e.id) {
+                                                    const idStr = e.id.toString();
+                                                    const title = e.title || e.name || e.titre;
+                                                    eventsMap[idStr] = title;
+                                                    eventsMap[`event-${idStr}`] = title;
+                                                }
+                                            });
+                                        } else {
+                                            Object.values(u.events).forEach(arr => {
+                                                if (Array.isArray(arr)) arr.forEach(e => {
+                                                    if (e && e.id) {
+                                                        const idStr = e.id.toString();
+                                                        const title = e.title || e.name || e.titre;
+                                                        eventsMap[idStr] = title;
+                                                        eventsMap[`event-${idStr}`] = title;
+                                                    }
+                                                });
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Impossible de charger la liste des événements:', e);
+                    }
+
+                    // Afficher les paiements individuels
+                    allMemberPayments.forEach(payment => {
+                        const paymentItem = document.createElement('div');
+                        paymentItem.className = 'payment-item';
+
+                        // déterminer le libellé à afficher pour le type (événement vs caisse)
+                        const rawType = payment.type || '';
+                        const isEvent = typeof rawType === 'string' && rawType.startsWith('event-');
+                        const displayType = isEvent ? (eventsMap[rawType] || rawType) : rawType;
+
+                        paymentItem.innerHTML = `
+                            <div class="payment-info">
+                                <div class="payment-type">${displayType}</div>
+                                <div class="payment-date">${formatDate(payment.date)}</div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                                <div class="payment-amount">${formatCurrency(payment.montant)}</div>
+                            </div>
+                        `;
+
+                        paymentsContainer.appendChild(paymentItem);
+                    });
+                    // Si le membre est en retard, proposer les ADIYA restants à payer par Wave
+                    const statusBadge = document.querySelector('#status-container .status-badge');
+                    const isLate = statusBadge && statusBadge.textContent && statusBadge.textContent.includes('En retard');
+                    
+                    if (isLate) {
+                        const now = new Date();
+                        const currentMonth = now.getMonth();
+                        const currentYear = now.getFullYear();
+
+                        // Section des restants à payer
+                        const remainingSection = document.createElement('div');
+                        remainingSection.style.marginTop = '12px';
+                        remainingSection.innerHTML = `<div style="font-weight:700; margin-bottom:8px; color:#b91c1c;"><i class="fas fa-exclamation-triangle"></i> ADIYA restants</div>`;
+                        
+                        const grid = document.createElement('div');
+                        grid.style.display = 'flex';
+                        grid.style.gap = '8px';
+                        grid.style.flexWrap = 'wrap';
+
+                        // Utiliser la même logique que getPaymentStatus pour identifier ce qui manque
+                        if (arguments[3] && arguments[3].entries) { // arguments[3] est lateConfig
+                            const lConfig = arguments[3];
+                            const dParams = arguments[4]; // dahiraParams
+                            const mSexe = arguments[1];   // memberSexe
+                            const evtsList = arguments[5] || []; // allEvents
+
+                            const monthlyMemberPayments = allMemberPayments.filter(p => {
+                                const pd = new Date(p.date);
+                                return pd.getMonth() === currentMonth && pd.getFullYear() === currentYear;
+                            });
+
+                            lConfig.entries.forEach(entry => {
+                                const type = entry.id || '';
+                                const reqCount = entry.requiredCount || 1;
+                                let paid = 0;
+                                let price = 0;
+                                let label = '';
+
+                                if (type.startsWith('event:')) {
+                                    const eid = type.split(':')[1];
+                                    const evt = evtsList.find(e => e && (e.id == eid || e.id == `event-${eid}`));
+                                    if (evt) {
+                                        paid = monthlyMemberPayments.filter(p => p.type === evt.caisse).reduce((s,p)=>s+p.montant,0);
+                                        price = evt.fee || 0;
+                                        label = evt.title || evt.titre || 'Événement';
+                                    }
+                                } else {
+                                    paid = monthlyMemberPayments.filter(p => p.type === type).reduce((s,p)=>s+p.montant,0);
+                                    price = getAmount(type, mSexe, dParams);
+                                    label = type.charAt(0).toUpperCase() + type.slice(1);
+                                }
+
+                                const required = price * reqCount;
+                                const remaining = required - paid;
+
+                                if (remaining > 0) {
+                                    const card = document.createElement('div');
+                                    card.style.background = '#fff7ed';
+                                    card.style.padding = '10px';
+                                    card.style.borderRadius = '8px';
+                                    card.style.display = 'flex';
+                                    card.style.alignItems = 'center';
+                                    card.style.gap = '8px';
+                                    
+                                    card.innerHTML = `
+                                        <div>${label}: <strong>${formatCurrency(remaining)}</strong></div>
+                                        <a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;">
+                                            <img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;object-fit:contain;">Payer
+                                        </a>
+                                    `;
+                                    grid.appendChild(card);
+                                }
+                            });
+                        } else {
+                            // Fallback legacy (hebdo + mensuelle)
+                            const mPayments = allMemberPayments.filter(p => {
+                                const pd = new Date(p.date);
+                                return pd.getMonth() === currentMonth && pd.getFullYear() === currentYear;
+                            });
+                            const weeklyPaid = mPayments.filter(p => p.type === 'hebdomadaire').reduce((s,p)=>s+p.montant,0);
+                            const monthlyPaid = mPayments.filter(p => p.type === 'mensuelle').reduce((s,p)=>s+p.montant,0);
+                            const wRem = Math.max(0, 1000 - weeklyPaid);
+                            const mRem = Math.max(0, 500 - monthlyPaid);
+
+                            if (wRem > 0) {
+                                const c = document.createElement('div');
+                                c.style.background = '#fff7ed'; c.style.padding = '10px'; c.style.borderRadius = '8px'; c.style.display = 'flex'; c.style.alignItems = 'center'; c.style.gap = '8px';
+                                c.innerHTML = `<div>Hebdomadaire: <strong>${formatCurrency(wRem)}</strong></div><a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener""><img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;">Payer</a>`;
+                                grid.appendChild(c);
+                            }
+                            if (mRem > 0) {
+                                const c = document.createElement('div');
+                                c.style.background = '#fff7ed'; c.style.padding = '10px'; c.style.borderRadius = '8px'; c.style.display = 'flex'; c.style.alignItems = 'center'; c.style.gap = '8px';
+                                c.innerHTML = `<div>Mensuelle: <strong>${formatCurrency(mRem)}</strong></div><a class="btn btn-primary" href="https://pay.wave.com/m/M_sn__iXmGOL_WZTs/c/sn/" target="_blank" rel="noopener""><img src="wave-mobile-money-logo.avif" alt="Wave" style="width:18px;height:18px;">Payer</a>`;
+                                grid.appendChild(c);
+                            }
+                        }
+                        
+                        remainingSection.appendChild(grid);
+                        paymentsContainer.appendChild(remainingSection);
+                    }
+                } else {
+                    paymentsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <p><i class="fas fa-clipboard-list"></i> Aucun ADIYA enregistré</p>
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('Erreur lors du chargement des ADIYA:', error);
+                document.getElementById('payments-container').innerHTML = `
+                    <div class="error">
+                        <p>❌ Erreur lors du chargement des ADIYA</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Fonction principale
+        function init() {
+            // Récupérer l'ID du membre depuis l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const memberId = urlParams.get('id');
+
+            if (!memberId) {
+                showError('ID du membre manquant dans l\'URL');
+                return;
+            }
+
+            // Charger le profil
+            loadMemberProfile(memberId);
+        }
+
+        // Démarrer l'application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
